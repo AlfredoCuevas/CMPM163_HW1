@@ -173,7 +173,7 @@
 
                 scene = new THREE.Scene();
 
-                //Lights
+                //Lights for phong Shaders
 
                 var ambient = new THREE.Vector3(0.1,0.1,0.1);
 
@@ -192,6 +192,10 @@
                 // var light4_pos = new THREE.Vector3(10.0, -10.0, 0.0);
                 // var light4_diffuse = new THREE.Vector3(1.0, 0.0, 0.0);
                 // var light4_specular = new THREE.Vector3(0.0, 0.0, 0.0);
+
+                //light created through Three.js
+                light = new THREE.DirectionalLight(0xffffff, 0.5);
+                scene.add(light);
 
                 //Texture
                 var texture = new THREE.TextureLoader().load( 'KamenRider.png' );
@@ -228,31 +232,32 @@
                 	fragmentShader: document.getElementById( 'fragmentShader2' ).textContent,
                 });
 
-                //geometry
-                var loader = new THREE.JSONLoader();
-                loader.load("planet.json", planet_load);
-                mesh1 = new THREE.Mesh();
-
-
-                light = new THREE.DirectionalLight(0xff69b4, 0.5);
-                scene.add(light);
                 material3 = new THREE.MeshStandardMaterial();
-                function planet_load(geometry, materialz){
-                	mesh1.geometry = geometry;
-                	mesh1.material = material3;
-                	scene.add( mesh1 );
-                }
+
+                //geometry
 
                 var cube = new THREE.BoxGeometry(1, 1, 1);
-                mesh2 = new THREE.Mesh( cube, material);
-                mesh2.translateX(-2);
-                scene.add(mesh2);
+                mesh1 = new THREE.Mesh( cube, material);
+                mesh1.translateX(-2);
+                scene.add(mesh1);
 
                 var cone = new THREE.ConeGeometry(1, 2, 5);
-                mesh3 = new THREE.Mesh( cone, material2);
-                mesh3.translateY(-1.7);
-                mesh3.rotateX(3.0);
-                scene.add(mesh3);
+                mesh2 = new THREE.Mesh( cone, material2);
+                mesh2.translateY(-1.7);
+                mesh2.rotateX(3.0);
+                scene.add(mesh2);
+
+                // third object
+                var loader = new THREE.JSONLoader();
+                mesh3 = new THREE.Mesh();
+                loader.load("planet.json", planet_load);
+
+                function planet_load(geometry, materialz){
+                	mesh3.geometry = geometry;
+                	mesh3.material = material3;
+                	scene.add( mesh3 );
+                }
+                
 
                 renderer = new THREE.WebGLRenderer();
                 renderer.setClearColor(0x999999);
@@ -280,10 +285,10 @@
                 // material2.uniforms.light2_pos.value = new THREE.Vector3(10 * Math.sin(delta), -10, 0.0);
 
                 //movement
-                mesh1.rotation.y += 0.01;
-                mesh2.position.x = -2 * Math.sin(delta/2);
-                mesh2.position.y = 3.5*Math.cos(delta/2);
-                mesh3.rotation.y += 0.05
+                mesh3.rotation.y += 0.01;
+                mesh1.position.x = -2 * Math.sin(delta/2);
+                mesh1.position.y = 3.5*Math.cos(delta/2);
+                mesh2.rotation.y += 0.05
 
                 
             }
