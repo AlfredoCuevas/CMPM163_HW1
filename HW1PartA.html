@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <title>HW1 -A- Design a 3D scene</title>
+        <title>HW1-A-Design a 3D scene- Alfredo Cuevas</title>
         <meta charset="utf-8">
         <style>
             body {
@@ -119,7 +119,12 @@
             uniform mat4 projectionMatrix;
 
             attribute vec3 position;
+            attribute vec3 normal;
             attribute vec2 uv;
+
+            uniform vec3 light1_pos;
+
+            varying vec3 N, L1, V;
 
             varying vec2 vUV;
 
@@ -127,6 +132,16 @@
                 vec4 position = viewMatrix * modelMatrix * vec4(position, 1.0);
 
                 vUV = uv;
+
+                vec3 P = position.xyz;
+
+                N = vec3(normalize(viewMatrix * modelMatrix * vec4(normal.xyz, 0.0)).xyz);
+
+                vec4 L1_cam = viewMatrix * vec4(light1_pos, 1.0);
+
+                L1 = vec3(normalize(L1_cam - position).xyz);
+
+                V = normalize(-P);
 
                 gl_Position = projectionMatrix * position;
             }
@@ -136,17 +151,38 @@
             
             precision mediump float;
 
+            varying vec3 V, N, L1;
             varying vec2 vUV;
+            float spec_intensity = 32.0;
+
+            uniform vec3 ambient;
+
+            uniform vec3 light1_diffuse;
+            uniform vec3 light1_specular;
 
             uniform sampler2D t1;
-
-
+            uniform float mixVal;
 
             void main(){
+                vec4 outColor1 = vec4(0.0);
 
+                float diff1 = max(0.0, dot(N, L1));
+                vec3 color1 = diff1 * light1_diffuse;
+
+                vec3 R1 = normalize(reflect(-L1, N));
+                float spec1 = pow( max(dot(R1, V), 0.0), spec_intensity);
+
+                color1 += spec1 * light1_specular;
+                if(spec1 > 1.0){
+                    outColor1 = vec4(light1_specular, 1.0);
+                }else{
+                    outColor1 = clamp(vec4(color1, 1.0), 0.0, 1.0);
+                }
+
+                vec4 lighting = clamp(vec4(ambient, 1.0) + outColor1, 0.0, 1.0);
                 vec4 c1 = texture2D(t1, vUV);
         
-                gl_FragColor = c1;
+                gl_FragColor = mix(lighting, c1, mixVal);
             }
         </script>
 
@@ -194,6 +230,9 @@
         </script>
 
         <script>
+            //References: 
+            //Professor Angus Forbes example code
+            //CJ Gammon's three.js youtube series
             
             //Variables
             var container
@@ -229,9 +268,9 @@
                 var light2_diffuse = new THREE.Vector3(0.1, 0.0, 1.0);
                 var light2_specular = new THREE.Vector3(1.0, 1.0, 1.0);
 
-                // var light3_pos = new THREE.Vector3(-10.0, -10.0, 0.0);
-                // var light3_diffuse = new THREE.Vector3(0.0, 0.0, 1.0);
-                // var light3_specular = new THREE.Vector3(0.0, 0.0, 0.0);
+                 var light3_pos = new THREE.Vector3(-10.0, -10.0, 0.0);
+                 var light3_diffuse = new THREE.Vector3(0.93, 0.91, 0.93);
+                 var light3_specular = new THREE.Vector3(0.5, 0.5, 0.5);
 
                 // var light4_pos = new THREE.Vector3(10.0, -10.0, 0.0);
                 // var light4_diffuse = new THREE.Vector3(1.0, 0.0, 0.0);
@@ -261,7 +300,12 @@
                 };
 
                 var uniforms2 = {
+                    ambient: { type: "vec3", value: ambient },
+                    light1_pos: { type: "v3", value: light3_pos },
+                    light1_diffuse: { type: "v3", value: light3_diffuse },
+                    light1_specular:  { type: "v3", value: light3_specular },
                     t1: { type: "t", value: texture2},
+                    mixVal: { type: "f", value: 0.5},
                 };
 
                 var uniforms3 = {
@@ -347,7 +391,7 @@
 
                 light.position.x = 15*Math.cos(delta);
 
-                // material2.uniforms.light1_pos.value = new THREE.Vector3(-10 * Math.sin(delta), -10, 0.0);
+                 material2.uniforms.light1_pos.value = new THREE.Vector3(-10 * Math.sin(delta), -10, 0.0);
                 // material2.uniforms.light2_pos.value = new THREE.Vector3(10 * Math.sin(delta), -10, 0.0);
 
                 mesh3.material.uniforms.changeOverTime.value = 0.5 + Math.sin(delta) * 0.5;
