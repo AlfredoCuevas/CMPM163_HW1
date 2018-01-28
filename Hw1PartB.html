@@ -47,21 +47,64 @@
             void main(){
                 vec2 texel = vec2(1.0 / rx, 1.0 / ry);
 
-                //my code causes slight box blur
-                vec4 tx0y0 = texture2D( t1, UV + texel * vec2( -1, -1 ) );
-                vec4 tx0y1 = texture2D( t1, UV + texel * vec2( -1,  0 ) );
-                vec4 tx0y2 = texture2D( t1, UV + texel * vec2( -1,  1 ) );
+                //right sobel effect
+                const mat3 G = mat3( -1, 0, 1,
+                                     -2, 0, 2,
+                                     -1, 0, 1);
+                const float div = 1.0;
 
-                vec4 tx1y0 = texture2D( t1, UV + texel * vec2(  0, -1 ) );
-                vec4 tx1y1 = texture2D( t1, UV + texel * vec2(  0,  0 ) );
-                vec4 tx1y2 = texture2D( t1, UV + texel * vec2(  0,  1 ) );
+                //r values of texels 
+                float tx0y0r = texture2D( t1, UV + texel * vec2( -1, -1 ) ).r;
+                float tx0y1r = texture2D( t1, UV + texel * vec2( -1,  0 ) ).r;
+                float tx0y2r = texture2D( t1, UV + texel * vec2( -1,  1 ) ).r;
 
-                vec4 tx2y0 = texture2D( t1, UV + texel * vec2(  1, -1 ) );
-                vec4 tx2y1 = texture2D( t1, UV + texel * vec2(  1,  0 ) );
-                vec4 tx2y2 = texture2D( t1, UV + texel * vec2(  1,  1 ) );
+                float tx1y0r = texture2D( t1, UV + texel * vec2(  0, -1 ) ).r;
+                float tx1y1r = texture2D( t1, UV + texel * vec2(  0,  0 ) ).r;
+                float tx1y2r = texture2D( t1, UV + texel * vec2(  0,  1 ) ).r;
 
-                vec4 edgePix= (tx0y0+tx0y1+tx0y2+ tx1y0+tx1y1+tx1y1+ tx2y0+tx2y1+tx2y2) / (vec4(9,9,9,9));
+                float tx2y0r = texture2D( t1, UV + texel * vec2(  1, -1 ) ).r;
+                float tx2y1r = texture2D( t1, UV + texel * vec2(  1,  0 ) ).r;
+                float tx2y2r = texture2D( t1, UV + texel * vec2(  1,  1 ) ).r;
 
+                //g values of texels
+                float tx0y0g = texture2D( t1, UV + texel * vec2( -1, -1 ) ).g;
+                float tx0y1g = texture2D( t1, UV + texel * vec2( -1,  0 ) ).g;
+                float tx0y2g = texture2D( t1, UV + texel * vec2( -1,  1 ) ).g;
+
+                float tx1y0g = texture2D( t1, UV + texel * vec2(  0, -1 ) ).g;
+                float tx1y1g = texture2D( t1, UV + texel * vec2(  0,  0 ) ).g;
+                float tx1y2g = texture2D( t1, UV + texel * vec2(  0,  1 ) ).g;
+
+                float tx2y0g = texture2D( t1, UV + texel * vec2(  1, -1 ) ).g;
+                float tx2y1g = texture2D( t1, UV + texel * vec2(  1,  0 ) ).g;
+                float tx2y2g = texture2D( t1, UV + texel * vec2(  1,  1 ) ).g;
+
+                //b values of texels
+                float tx0y0b = texture2D( t1, UV + texel * vec2( -1, -1 ) ).b;
+                float tx0y1b = texture2D( t1, UV + texel * vec2( -1,  0 ) ).b;
+                float tx0y2b = texture2D( t1, UV + texel * vec2( -1,  1 ) ).b;
+
+                float tx1y0b = texture2D( t1, UV + texel * vec2(  0, -1 ) ).b;
+                float tx1y1b = texture2D( t1, UV + texel * vec2(  0,  0 ) ).b;
+                float tx1y2b = texture2D( t1, UV + texel * vec2(  0,  1 ) ).b;
+
+                float tx2y0b = texture2D( t1, UV + texel * vec2(  1, -1 ) ).b;
+                float tx2y1b = texture2D( t1, UV + texel * vec2(  1,  0 ) ).b;
+                float tx2y2b = texture2D( t1, UV + texel * vec2(  1,  1 ) ).b;
+
+                float valueGr = G[0][0] * tx0y0r + G[1][0] * tx1y0r + G[2][0] * tx2y0r + 
+                                G[0][1] * tx0y1r + G[1][1] * tx1y1r + G[2][1] * tx2y1r + 
+                                G[0][2] * tx0y2r + G[1][2] * tx1y2r + G[2][2] * tx2y2r;
+
+                float valueGg = G[0][0] * tx0y0g + G[1][0] * tx1y0g + G[2][0] * tx2y0g + 
+                                G[0][1] * tx0y1g + G[1][1] * tx1y1g + G[2][1] * tx2y1g + 
+                                G[0][2] * tx0y2g + G[1][2] * tx1y2g + G[2][2] * tx2y2g;
+
+                float valueGb = G[0][0] * tx0y0b + G[1][0] * tx1y0b + G[2][0] * tx2y0b + 
+                                G[0][1] * tx0y1b + G[1][1] * tx1y1b + G[2][1] * tx2y1b + 
+                                G[0][2] * tx0y2b + G[1][2] * tx1y2b + G[2][2] * tx2y2b;
+
+                vec4 edgePix= vec4(valueGr / div, valueGg / div, valueGb / div, 1.0);
                 vec4 texPix = texture2D(t1, UV);
 
 
@@ -70,6 +113,8 @@
         </script>
 
         <script>
+            //references: 
+            //Professor Angus Forbes example code
 
             //Variables
             var container;
