@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>HW1 -B- Image Processing- Alfredo Cuevas</title>
+        <!--Alfredo Cuevas
+            Professor Angus Forbes example used as a base
+            Created a right sobel effect using a kernel -->
+        <meta charset="utf-8">
+        <style>
+            body {
+                margin: 0px;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container"></div>
+
+        <script src="../js/three.js"></script>
+
+        <script id="vertexShader" type="x-shader/x-vertex">
+            
+            uniform mat4 modelViewMatrix;
+            uniform mat4 projectionMatrix;
+
+            attribute vec3 position;
+            attribute vec2 texCoords;
+
+            varying vec2 UV;
+
+            void main(){
+                UV = texCoords;
+
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        </script>
+
+        <script id="fragmentShader" type="x-shader/x-fragment">
+            precision mediump float;
+
+            uniform sampler2D t1;
+
+            uniform float rx;
+            uniform float ry;
+
+            uniform float mixVal;
+
+            varying vec2 UV;
+
+            void main(){
+                vec2 texel = vec2(1.0 / rx, 1.0 / ry);
+
+                //right sobel effect
+                const mat3 G = mat3( -1, 0, 1,
+                                     -2, 0, 2,
+                                     -1, 0, 1);
+                const float div = 1.0;
+
+                //r values of texels 
+                float tx0y0r = texture2D( t1, UV + texel * vec2( -1, -1 ) ).r;
+                float tx0y1r = texture2D( t1, UV + texel * vec2( -1,  0 ) ).r;
+                float tx0y2r = texture2D( t1, UV + texel * vec2( -1,  1 ) ).r;
+
+                float tx1y0r = texture2D( t1, UV + texel * vec2(  0, -1 ) ).r;
+                float tx1y1r = texture2D( t1, UV + texel * vec2(  0,  0 ) ).r;
+                float tx1y2r = texture2D( t1, UV + texel * vec2(  0,  1 ) ).r;
+
+                float tx2y0r = texture2D( t1, UV + texel * vec2(  1, -1 ) ).r;
+                float tx2y1r = texture2D( t1, UV + texel * vec2(  1,  0 ) ).r;
+                float tx2y2r = texture2D( t1, UV + texel * vec2(  1,  1 ) ).r;
+
+                //g values of texels
+                float tx0y0g = texture2D( t1, UV + texel * vec2( -1, -1 ) ).g;
+                float tx0y1g = texture2D( t1, UV + texel * vec2( -1,  0 ) ).g;
+                float tx0y2g = texture2D( t1, UV + texel * vec2( -1,  1 ) ).g;
+
+                float tx1y0g = texture2D( t1, UV + texel * vec2(  0, -1 ) ).g;
+                float tx1y1g = texture2D( t1, UV + texel * vec2(  0,  0 ) ).g;
+                float tx1y2g = texture2D( t1, UV + texel * vec2(  0,  1 ) ).g;
+
+                float tx2y0g = texture2D( t1, UV + texel * vec2(  1, -1 ) ).g;
+                float tx2y1g = texture2D( t1, UV + texel * vec2(  1,  0 ) ).g;
+                float tx2y2g = texture2D( t1, UV + texel * vec2(  1,  1 ) ).g;
+
+                //b values of texels
+                float tx0y0b = texture2D( t1, UV + texel * vec2( -1, -1 ) ).b;
+                float tx0y1b = texture2D( t1, UV + texel * vec2( -1,  0 ) ).b;
+                float tx0y2b = texture2D( t1, UV + texel * vec2( -1,  1 ) ).b;
+
+                float tx1y0b = texture2D( t1, UV + texel * vec2(  0, -1 ) ).b;
+                float tx1y1b = texture2D( t1, UV + texel * vec2(  0,  0 ) ).b;
+                float tx1y2b = texture2D( t1, UV + texel * vec2(  0,  1 ) ).b;
+
+                float tx2y0b = texture2D( t1, UV + texel * vec2(  1, -1 ) ).b;
+                float tx2y1b = texture2D( t1, UV + texel * vec2(  1,  0 ) ).b;
+                float tx2y2b = texture2D( t1, UV + texel * vec2(  1,  1 ) ).b;
+
+                float valueGr = G[0][0] * tx0y0r + G[1][0] * tx1y0r + G[2][0] * tx2y0r + 
+                                G[0][1] * tx0y1r + G[1][1] * tx1y1r + G[2][1] * tx2y1r + 
+                                G[0][2] * tx0y2r + G[1][2] * tx1y2r + G[2][2] * tx2y2r;
+
+                float valueGg = G[0][0] * tx0y0g + G[1][0] * tx1y0g + G[2][0] * tx2y0g + 
+                                G[0][1] * tx0y1g + G[1][1] * tx1y1g + G[2][1] * tx2y1g + 
+                                G[0][2] * tx0y2g + G[1][2] * tx1y2g + G[2][2] * tx2y2g;
+
+                float valueGb = G[0][0] * tx0y0b + G[1][0] * tx1y0b + G[2][0] * tx2y0b + 
+                                G[0][1] * tx0y1b + G[1][1] * tx1y1b + G[2][1] * tx2y1b + 
+                                G[0][2] * tx0y2b + G[1][2] * tx1y2b + G[2][2] * tx2y2b;
+
+                vec4 edgePix= vec4(valueGr / div, valueGg / div, valueGb / div, 1.0);
+                vec4 texPix = texture2D(t1, UV);
+
+
+                gl_FragColor = mix(texPix, edgePix, mixVal);
+            }
+        </script>
+
+        <script>
+            //references: 
+            //Professor Angus Forbes example code
+
+            //Variables
+            var container;
+
+            var camera, scene, renderer;
+
+            var mesh;
+            var material;
+
+            var texture1 = new THREE.TextureLoader().load('Fred.jpg');
+
+            var mouseX = 0.0;
+            var mouseY = 0.0;
+
+            init();
+            animate();
+
+            function init(){
+                container = document.getElementById('container');
+
+                camera = new THREE.PerspectiveCamera(60.0, window.innerWidth / window.innerHeight, 0.1, 50);
+                camera.position.z = 2;
+
+                scene = new THREE.Scene();
+
+                //Buffer Geometry
+
+                var geometry = new THREE.BufferGeometry();
+
+                var vertices = new Float32Array([
+                    -1.0, -1.0, 0.0,
+                    +1.0, -1.0, 0.0,
+                    +1.0, +1.0, 0.0,
+     
+                    -1.0, -1.0, 0.0,
+                    +1.0, +1.0, 0.0,
+                    -1.0, +1.0, 0.0,
+                ]);
+
+                var texCoords = new Float32Array([
+                    0.0, 0.0,
+                    1.0, 0.0,
+                    1.0, 1.0,
+
+                    0.0, 0.0,
+                    1.0, 1.0,
+                    0.0, 1.0,
+
+                ]);
+
+                geometry.addAttribute( 'position', new THREE.BufferAttribute( vertices, 3));
+                geometry.addAttribute( 'texCoords', new THREE.BufferAttribute( texCoords, 2));
+
+                var uniforms = {
+                    t1: { type: "t", value: texture1 },
+                    rx: { type: "f", value: 1024/2 },
+                    ry: { type: "f", value: 1024/2 },
+                    mixVal: { type: "f", value: 0.5 },
+                };
+
+                material = new THREE.RawShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: document.getElementById( 'vertexShader' ).textContent,
+                    fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
+                });
+
+                mesh = new THREE.Mesh(geometry, material);
+                mesh.translateX(0.0);
+                mesh.material.side = THREE.DoubleSide;
+                scene.add(mesh);
+
+                renderer = new THREE.WebGLRenderer();
+                renderer.setClearColor(0x999999);
+                renderer.setSize( window.innerWidth, window.innerHeight);
+                container.appendChild(renderer.domElement);
+
+                document.addEventListener('mousemove', onDocumentMouseMove, false);
+            }
+
+            function animate(){
+                requestAnimationFrame(animate);
+                render();
+            }
+
+            function render(){
+                var time = performance.now();
+                mesh.material.uniforms.mixVal.value = mouseX;
+                renderer.render(scene, camera);
+            }
+
+            function onDocumentMouseMove(event){
+                event.preventDefault();
+                mouseX = (event.clientX / window.innerWidth);
+            }
+
+        </script>
+
+
+    </body>
+</html>

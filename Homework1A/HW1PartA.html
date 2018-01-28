@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>HW1-A-Design a 3D scene- Alfredo Cuevas</title>
+        <!--Alfredo Cuevas
+            Referenced Professor Angus Forbes example code
+            Referenced CJ Gammon's three.js youtube series -->
+
+        <meta charset="utf-8">
+        <style>
+            body {
+                margin: 0px;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container"></div>
+
+        <script src="../js/three.js"></script>
+
+        <script id="vertexShaderPhong" type="x-shader/x-vertex">
+            uniform mat4 modelMatrix;
+            uniform mat4 viewMatrix;
+            uniform mat4 projectionMatrix;
+
+            attribute vec3 position;
+            attribute vec3 normal;
+            attribute vec2 uv;
+
+            uniform vec3 light1_pos;
+            uniform vec3 light2_pos;
+
+            varying vec3 N, L1, L2, V;
+            varying vec2 vUV;
+
+            void main(){
+                vec4 position = viewMatrix * modelMatrix * vec4(position, 1.0);
+
+                vUV = uv;
+
+                vec3 P = position.xyz;
+
+                N = vec3(normalize(viewMatrix * modelMatrix * vec4(normal.xyz, 0.0)).xyz);
+
+                vec4 L1_cam = viewMatrix * vec4(light1_pos, 1.0);
+                vec4 L2_cam = viewMatrix * vec4(light2_pos, 1.0);
+
+                L1 = vec3(normalize(L1_cam - position).xyz);
+                L2 = vec3(normalize(L2_cam - position).xyz);
+
+                V = normalize(-P);
+
+                gl_Position = projectionMatrix * position;
+            }
+        </script>
+
+        <script id="fragmentShaderPhong" type="x-shader/x-fragment">
+            
+            precision mediump float;
+
+            varying vec3 V, N, L1, L2;
+            varying vec2 vUV;
+            float spec_intensity = 32.0;
+
+            uniform vec3 ambient;
+
+            uniform vec3 light1_diffuse;
+            uniform vec3 light2_diffuse;
+
+            uniform vec3 light1_specular;
+            uniform vec3 light2_specular;
+
+            uniform sampler2D t1;
+            uniform float mixVal;
+
+
+
+            void main(){
+
+                vec4 outColor1 = vec4(0.0);
+                vec4 outColor2 = vec4(0.0);
+
+                float diff1 = max(0.0, dot(N, L1));
+                vec3 color1 = diff1 * light1_diffuse;
+
+                vec3 R1 = normalize(reflect(-L1, N));
+                float spec1 = pow( max(dot(R1, V), 0.0), spec_intensity);
+
+                color1 += spec1 * light1_specular;
+                if(spec1 > 1.0){
+                    outColor1 = vec4(light1_specular, 1.0);
+                }else{
+                    outColor1 = clamp(vec4(color1, 1.0), 0.0, 1.0);
+                }
+
+                //diffuse
+                float diff2 = max(0.0, dot(N, L2));
+                vec3 color2 = diff2 * light2_diffuse;
+        
+        
+                //specular
+                vec3 R2 = normalize(reflect(-L2,N));
+        
+                float spec2 = pow( max(dot(R2, V), 0.0), spec_intensity);
+                color2 += spec2 * light2_specular;
+                if (spec2 > 1.0) {
+                    outColor2 = vec4(light2_specular,1.0);
+                } else {
+                    outColor2 = clamp(vec4(color2,1.0), 0.0,1.0);
+                }
+
+                vec4 lighting = clamp(vec4(ambient, 1.0) + outColor1 + outColor2, 0.0, 1.0);
+                vec4 c1 = texture2D(t1, vUV);
+        
+                gl_FragColor = mix(lighting, c1, mixVal);
+            }
+        </script>
+
+        <script id="vertexShader2" type="x-shader/x-vertex">
+            uniform mat4 modelMatrix;
+            uniform mat4 viewMatrix;
+            uniform mat4 projectionMatrix;
+
+            attribute vec3 position;
+            attribute vec3 normal;
+            attribute vec2 uv;
+
+            uniform vec3 light1_pos;
+
+            varying vec3 N, L1, V;
+
+            varying vec2 vUV;
+
+            void main(){
+                vec4 position = viewMatrix * modelMatrix * vec4(position, 1.0);
+
+                vUV = uv;
+
+                vec3 P = position.xyz;
+
+                N = vec3(normalize(viewMatrix * modelMatrix * vec4(normal.xyz, 0.0)).xyz);
+
+                vec4 L1_cam = viewMatrix * vec4(light1_pos, 1.0);
+
+                L1 = vec3(normalize(L1_cam - position).xyz);
+
+                V = normalize(-P);
+
+                gl_Position = projectionMatrix * position;
+            }
+        </script>
+
+        <script id="fragmentShader2" type="x-shader/x-fragment">
+            
+            precision mediump float;
+
+            varying vec3 V, N, L1;
+            varying vec2 vUV;
+            float spec_intensity = 32.0;
+
+            uniform vec3 ambient;
+
+            uniform vec3 light1_diffuse;
+            uniform vec3 light1_specular;
+
+            uniform sampler2D t1;
+            uniform float mixVal;
+
+            void main(){
+                vec4 outColor1 = vec4(0.0);
+
+                float diff1 = max(0.0, dot(N, L1));
+                vec3 color1 = diff1 * light1_diffuse;
+
+                vec3 R1 = normalize(reflect(-L1, N));
+                float spec1 = pow( max(dot(R1, V), 0.0), spec_intensity);
+
+                color1 += spec1 * light1_specular;
+                if(spec1 > 1.0){
+                    outColor1 = vec4(light1_specular, 1.0);
+                }else{
+                    outColor1 = clamp(vec4(color1, 1.0), 0.0, 1.0);
+                }
+
+                vec4 lighting = clamp(vec4(ambient, 1.0) + outColor1, 0.0, 1.0);
+                vec4 c1 = texture2D(t1, vUV);
+        
+                gl_FragColor = mix(lighting, c1, mixVal);
+            }
+        </script>
+
+        <script id="vertexShader3" type="x-shader/x-vertex">
+            uniform mat4 modelMatrix;
+            uniform mat4 viewMatrix;
+            uniform mat4 projectionMatrix;
+
+            attribute vec3 position;
+            attribute vec2 uv;
+
+            attribute float vertexDisplacement;
+            uniform float changeOverTime;
+            varying float vOpacity;
+            varying vec3 vUv;
+
+            void main(){
+
+                vUv = position;
+                vOpacity = vertexDisplacement;
+
+                vec3 p = position;
+
+                p.x += sin(vertexDisplacement) * 2.0;
+                p.y += cos(vertexDisplacement) * 2.0;
+
+                vec4 modelViewPosition = viewMatrix * modelMatrix * vec4(p, 1.0);
+                gl_Position = projectionMatrix * modelViewPosition;
+            }
+        </script>
+
+        <script id="fragmentShader3" type="x-shader/x-fragment">
+            precision highp float;
+
+            uniform float changeOverTime;
+            varying float vOpacity;
+            varying vec3 vUv;
+
+            void main(){
+                float r = 0.5 + cos((vUv.x + 1.0) * changeOverTime);
+                float g = 0.5 + (sin(changeOverTime) * 0.5);
+                float b = 1.0 + sin(changeOverTime)* 0.5;
+                gl_FragColor = vec4(r, g, b, vOpacity);
+            }
+        </script>
+
+        <script>
+            //References: 
+            //Professor Angus Forbes example code
+            //CJ Gammon's three.js youtube series
+            
+            //Variables
+            var container
+
+            var camera, scene, renderer;
+
+            var mesh1, mesh2, mesh3;
+            var material, material2, material3;
+            var light;
+            var vertexDisplacement;
+
+            init();
+            animate();
+
+            function init(){
+
+                container = document.getElementById( 'container' );
+
+                camera = new THREE.PerspectiveCamera( 60, window.innerWidth/ window.innerHeight, 0.1, 500);
+                camera.position.z = 8;
+
+                scene = new THREE.Scene();
+
+                //Lights for phong Shaders
+
+                var ambient = new THREE.Vector3(0.1,0.1,0.1);
+
+                var light1_pos = new THREE.Vector3(10.0, 0.0, 5.0);
+                var light1_diffuse = new THREE.Vector3(1.0, 0.0, 0.0);
+                var light1_specular = new THREE.Vector3(1.0, 1.0, 1.0);
+
+                var light2_pos = new THREE.Vector3(0.0, -10.0, 1.0);
+                var light2_diffuse = new THREE.Vector3(0.1, 0.0, 1.0);
+                var light2_specular = new THREE.Vector3(1.0, 1.0, 1.0);
+
+                 var light3_pos = new THREE.Vector3(-10.0, -10.0, 0.0);
+                 var light3_diffuse = new THREE.Vector3(0.93, 0.91, 0.93);
+                 var light3_specular = new THREE.Vector3(0.5, 0.5, 0.5);
+
+                // var light4_pos = new THREE.Vector3(10.0, -10.0, 0.0);
+                // var light4_diffuse = new THREE.Vector3(1.0, 0.0, 0.0);
+                // var light4_specular = new THREE.Vector3(0.0, 0.0, 0.0);
+
+                //light created through Three.js
+                light = new THREE.DirectionalLight(0xffffff, 0.5);
+                scene.add(light);
+
+                //Texture
+                var texture = new THREE.TextureLoader().load( 'KamenRider.png' );
+                var texture2 = new THREE.TextureLoader().load('cone.png');
+                
+
+                //materials
+
+                var uniforms = {
+                    ambient: { type: "v3", value: ambient },
+                    light1_pos: { type: "v3", value: light1_pos },
+                    light1_diffuse: { type: "v3", value: light1_diffuse },
+                    light1_specular:  { type: "v3", value: light1_specular },
+                    light2_pos: { type: "v3", value: light2_pos },
+                    light2_diffuse: { type: "v3", value: light2_diffuse },
+                    light2_specular:  { type: "v3", value: light2_specular },
+                    t1: { type: "t", value: texture},
+                    mixVal: { type: "f", value: 0.5 },
+                };
+
+                var uniforms2 = {
+                    ambient: { type: "vec3", value: ambient },
+                    light1_pos: { type: "v3", value: light3_pos },
+                    light1_diffuse: { type: "v3", value: light3_diffuse },
+                    light1_specular:  { type: "v3", value: light3_specular },
+                    t1: { type: "t", value: texture2},
+                    mixVal: { type: "f", value: 0.5},
+                };
+
+                var uniforms3 = {
+                    changeOverTime: { type: "f", value: 0.0 },
+                };
+
+                material = new THREE.RawShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: document.getElementById( 'vertexShaderPhong' ).textContent,
+                    fragmentShader: document.getElementById( 'fragmentShaderPhong' ).textContent,
+                });
+
+                material2 = new THREE.RawShaderMaterial({
+                	uniforms: uniforms2,
+                	vertexShader: document.getElementById( 'vertexShader2' ).textContent,
+                	fragmentShader: document.getElementById( 'fragmentShader2' ).textContent,
+                });
+
+                material3 = new THREE.RawShaderMaterial({
+                    uniforms: uniforms3,
+                    vertexShader: document.getElementById( 'vertexShader3' ).textContent,
+                    fragmentShader: document.getElementById( 'fragmentShader3').textContent,
+                });
+
+
+
+                //geometry
+
+                var cube = new THREE.BoxGeometry(1, 1, 1);
+                mesh1 = new THREE.Mesh( cube, material);
+                mesh1.translateX(-2);
+                scene.add(mesh1);
+
+                var cone = new THREE.ConeGeometry(1, 2, 5);
+                mesh2 = new THREE.Mesh( cone, material2);
+                mesh2.translateY(-1.7);
+                mesh2.rotateX(3.0);
+                scene.add(mesh2);
+
+                var sphere = new THREE.BoxBufferGeometry(1,1,1);
+                mesh3 = new THREE.Mesh(sphere, material3);
+                mesh3.translateY(-1.5);
+                scene.add(mesh3);
+
+                // model
+                // var loader = new THREE.JSONLoader();
+                // mesh3 = new THREE.Mesh();
+                // loader.load("planet.json", planet_load);
+
+                // function planet_load(geometry, materialz){
+                // 	mesh3.geometry = geometry;
+                // 	mesh3.material = material3;
+                // 	scene.add( mesh3 );
+                // }
+
+                vertexDisplacement = new Float32Array(sphere.attributes.position.count);
+                for(var i = 0; i < vertexDisplacement.length; i+=1){
+                    vertexDisplacement[i] = Math.sin(i);
+                }
+
+                sphere.addAttribute('vertexDisplacement', new THREE.BufferAttribute(vertexDisplacement, 1));
+
+
+                renderer = new THREE.WebGLRenderer();
+                renderer.setClearColor(0x999999);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                container.appendChild(renderer.domElement);
+            }
+
+            var delta = 0.0;
+
+            function animate(){
+
+                requestAnimationFrame(animate);
+                
+                renderer.render(scene, camera);
+
+                delta += 0.01;
+
+                //light spins around
+                material.uniforms.light1_pos.value = new THREE.Vector3(10.0 * Math.sin(delta), 0.0, 5.0 * Math.cos(delta));
+                material.uniforms.light2_pos.value = new THREE.Vector3(0.0, -10 * Math.sin(delta), 1.0);
+
+                light.position.x = 15*Math.cos(delta);
+
+                 material2.uniforms.light1_pos.value = new THREE.Vector3(-10 * Math.sin(delta), -10, 0.0);
+                // material2.uniforms.light2_pos.value = new THREE.Vector3(10 * Math.sin(delta), -10, 0.0);
+
+                mesh3.material.uniforms.changeOverTime.value = 0.5 + Math.sin(delta) * 0.5;
+                for(var i = 0; i < vertexDisplacement.length; i+=1){
+                    vertexDisplacement[i] = 0.5 + Math.sin(i * delta) * 0.25;
+                }
+
+                mesh3.geometry.attributes.vertexDisplacement.needsUpdate = true;
+
+                //movement
+                mesh3.rotation.y += 0.01;
+                mesh1.position.x = -2 * Math.sin(delta/2);
+                mesh1.position.y = 3.5*Math.cos(delta/2);
+                mesh2.rotation.y += 0.05
+
+                
+            }
+
+        </script>
+    </body>
+</html>
